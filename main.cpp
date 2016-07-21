@@ -60,44 +60,46 @@ private:
 };
 
 class IstreamName : public std::istream {
-
+public:
+    const std::string& getName() const { return name; }
+protected:
+    void setName(const std::string& n){ name = n; }
+private:
+    std::string name;
 };
 
-template <class Buffer>
-class Istream : public std::istream {
+template <class StreamBuf>
+class Istream : public IstreamName {
 public:
     Istream() = delete;
     Istream(std::unique_ptr<std::istream>&& s, const std::string& name)
-        : inputStream(std::move(s))
-        , buf(inputStream->rdbuf())
-        , name(newName(inputStream.get(), name)){
+        : iStream(std::move(s))
+        , buf(iStream->rdbuf()){
+        setName(newName(iStream.get(), name));
         rdbuf(&buf);
     }
 
     Istream(std::unique_ptr<std::istream>&& s)
-        : inputStream(std::move(s))
-        , buf(inputStream->rdbuf())
-        , name(newName(inputStream.get())){
+        : iStream(std::move(s))
+        , buf(iStream->rdbuf()){
+        setName(newName(iStream.get()));
         rdbuf(&buf);
     }
 
     static std::string newName(const std::istream* is, const std::string& name = ""){
         std::string newName{name};
-        const Istream* stream = dynamic_cast<const Istream*>(is);
+        const IstreamName* stream = dynamic_cast<const IstreamName*>(is);
         if ( stream ){
             newName = stream->getName();
         }
-        newName.append("/->/");
-        newName.append(Buffer::name());
+        newName.append("|>>|");
+        newName.append(StreamBuf::name());
         return newName;
     }
 
-    const std::string& getName() const { return name; }
-
 private:
-    std::unique_ptr<std::istream> inputStream;
-    Buffer buf;
-    const std::string name;
+    std::unique_ptr<std::istream> iStream;
+    StreamBuf buf;
 };
 
 
