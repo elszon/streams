@@ -103,13 +103,35 @@ private:
 };
 
 
+template <class StreamBuf>
+std::unique_ptr<Istream<OddBuf>> openIstream(const std::string& filename){
+    auto file = std::make_unique<std::ifstream>(filename);
+    return std::make_unique<Istream<OddBuf>>(std::move(file), filename);
+}
+
+template <class StreamBuf, class IstreamPtr>
+std::unique_ptr<Istream<StreamBuf>> makeIstream(IstreamPtr&& is){
+    return std::make_unique<Istream<StreamBuf>>(std::move(is));
+}
+
 
 void foo(){
-    auto file = std::make_unique<std::ifstream>("file.txt");
-    Istream<OddBuf> is(std::move(file), "file.txt");
+    auto is = openIstream<OddBuf>("file.txt");
+
+    std::cout << "foo stream name: " << is->getName() << std::endl;
+
+    std::string str;
+    while ( std::getline(*is, str) ){
+        std::cout << str << std::endl;
+    }
+}
 
 
-    std::cout << "foo stream name: " << is.getName() << std::endl;
+
+void foo2(){
+    Istream<SwapBuf> is(openIstream<OddBuf>("file.txt"));
+
+    std::cout << "foo2 stream name: " << is.getName() << std::endl;
 
     std::string str;
     while ( std::getline(is, str) ){
@@ -117,16 +139,13 @@ void foo(){
     }
 }
 
-void foo2(){
-    auto file = std::make_unique<std::ifstream>("file.txt");
-    std::unique_ptr<std::istream> file2 = std::make_unique<Istream<OddBuf>>(std::move(file), "file.txt");
-    Istream<SwapBuf> is(std::move(file2));
+void foo22(){
+    auto is(makeIstream<SwapBuf>(openIstream<OddBuf>("file.txt")));
 
-
-    std::cout << "foo2 stream name: " << is.getName() << std::endl;
+    std::cout << "foo22 stream name: " << is->getName() << std::endl;
 
     std::string str;
-    while ( std::getline(is, str) ){
+    while ( std::getline(*is, str) ){
         std::cout << str << std::endl;
     }
 }
@@ -157,6 +176,10 @@ int main(int argc, char *argv[])
     std::cout << "Hello World!" << std::endl;
 
     foo2();
+
+    std::cout << "Hello World!" << std::endl;
+
+    foo22();
 
 
     return 0;
