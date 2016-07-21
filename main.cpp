@@ -5,45 +5,6 @@
 #include <vector>
 
 
-std::string newName(std::fstream* fs, const std::string& name);
-
-class FstreamWrapper : public std::fstream {
-public:
-    FstreamWrapper(std::unique_ptr<std::fstream> fs, const std::string& name)
-        : name(newName(fs.get(), name)){
-        swap(*fs);
-    }
-
-    const std::string& getName() const { return name; }
-    std::fstream& getStream() { return *this; }
-private:
-    const std::string name;
-    };
-
-std::string newName(std::fstream* fs, const std::string& name){
-    std::string newName{name};
-    const FstreamWrapper* basedStream = dynamic_cast<FstreamWrapper*>(fs);
-    if ( basedStream ){
-        newName.append("/<-/");
-        newName.append(basedStream->getName());
-        return newName;
-    }
-    return newName;
-}
-
-template< class StreamBuf >
-class Fstream : public FstreamWrapper {
-public:
-    Fstream(std::unique_ptr<std::fstream>&& fs)
-        : FstreamWrapper(std::move(fs), StreamBuf::name())
-        , sbuf(getStream().rdbuf())
-        , istream(&sbuf){
-    }
-private:
-    StreamBuf sbuf;
-    std::istream istream;
-};
-
 class OddBuf : public std::streambuf {
 public:
     static std::string name() {return "OddBuf";}
@@ -98,24 +59,55 @@ private:
     char internalBuf[BUF_SIZE];
 };
 
+class IstreamName : public std::istream {
+
+};
+
 template <class Buffer>
 class Istream : public std::istream {
 public:
     Istream() = delete;
-    Istream(std::unique_ptr<std::istream>&& s)
+    Istream(std::unique_ptr<std::istream>&& s, const std::string& name)
         : inputStream(std::move(s))
-        , buf(inputStream->rdbuf()){
+        , buf(inputStream->rdbuf())
+        , name(newName(inputStream.get(), name)){
         rdbuf(&buf);
     }
+
+    Istream(std::unique_ptr<std::istream>&& s)
+        : inputStream(std::move(s))
+        , buf(inputStream->rdbuf())
+        , name(newName(inputStream.get())){
+        rdbuf(&buf);
+    }
+
+    static std::string newName(const std::istream* is, const std::string& name = ""){
+        std::string newName{name};
+        const Istream* stream = dynamic_cast<const Istream*>(is);
+        if ( stream ){
+            newName = stream->getName();
+        }
+        newName.append("/->/");
+        newName.append(Buffer::name());
+        return newName;
+    }
+
+    const std::string& getName() const { return name; }
 
 private:
     std::unique_ptr<std::istream> inputStream;
     Buffer buf;
+    const std::string name;
 };
+
+
 
 void foo(){
     auto file = std::make_unique<std::ifstream>("file.txt");
-    Istream<OddBuf> is(std::move(file));
+    Istream<OddBuf> is(std::move(file), "file.txt");
+
+
+    std::cout << "foo stream name: " << is.getName() << std::endl;
 
     std::string str;
     while ( std::getline(is, str) ){
@@ -125,8 +117,11 @@ void foo(){
 
 void foo2(){
     auto file = std::make_unique<std::ifstream>("file.txt");
-    std::unique_ptr<std::istream> file2 = std::make_unique<Istream<OddBuf>>(std::move(file));
+    std::unique_ptr<std::istream> file2 = std::make_unique<Istream<OddBuf>>(std::move(file), "file.txt");
     Istream<SwapBuf> is(std::move(file2));
+
+
+    std::cout << "foo2 stream name: " << is.getName() << std::endl;
 
     std::string str;
     while ( std::getline(is, str) ){
