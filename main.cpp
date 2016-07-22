@@ -61,6 +61,7 @@ private:
 
 class IstreamName : public std::istream {
 public:
+
     const std::string& getName() const { return name; }
 protected:
     void setName(const std::string& n){ name = n; }
@@ -72,15 +73,15 @@ template <class StreamBuf>
 class Istream : public IstreamName {
 public:
     Istream() = delete;
-    Istream(std::unique_ptr<std::istream>&& s, const std::string& name)
-        : iStream(std::move(s))
+    Istream(std::shared_ptr<std::istream>&& s, const std::string& name)
+        : iStream(s)
         , buf(iStream->rdbuf()){
         setName(newName(iStream.get(), name));
         rdbuf(&buf);
     }
 
-    Istream(std::unique_ptr<std::istream>&& s)
-        : iStream(std::move(s))
+    Istream(std::shared_ptr<std::istream>&& s)
+        : iStream(s)
         , buf(iStream->rdbuf()){
         setName(newName(iStream.get()));
         rdbuf(&buf);
@@ -98,20 +99,20 @@ public:
     }
 
 private:
-    std::unique_ptr<std::istream> iStream;
+    std::shared_ptr<std::istream> iStream;
     StreamBuf buf;
 };
 
 
 template <class StreamBuf>
-std::unique_ptr<Istream<OddBuf>> openIstream(const std::string& filename){
-    auto file = std::make_unique<std::ifstream>(filename);
-    return std::make_unique<Istream<OddBuf>>(std::move(file), filename);
+std::shared_ptr<Istream<OddBuf>> openIstream(const std::string& filename){
+    auto file = std::make_shared<std::ifstream>(filename);
+    return std::make_shared<Istream<OddBuf>>(file, filename);
 }
 
 template <class StreamBuf, class IstreamPtr>
-std::unique_ptr<Istream<StreamBuf>> makeIstream(IstreamPtr&& is){
-    return std::make_unique<Istream<StreamBuf>>(std::move(is));
+std::shared_ptr<Istream<StreamBuf>> makeIstream(IstreamPtr&& is){
+    return std::make_shared<Istream<StreamBuf>>(is);
 }
 
 
