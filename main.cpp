@@ -73,15 +73,15 @@ template <class StreamBuf>
 class Istream : public IstreamName {
 public:
     Istream() = delete;
-    Istream(std::shared_ptr<std::istream>&& s, const std::string& name)
-        : iStream(s)
+    Istream(std::unique_ptr<std::istream>&& s, const std::string& name)
+        : iStream(std::move(s))
         , buf(iStream->rdbuf()){
         setName(newName(iStream.get(), name));
         rdbuf(&buf);
     }
 
-    Istream(std::shared_ptr<std::istream>&& s)
-        : iStream(s)
+    Istream(std::unique_ptr<std::istream>&& s)
+        : iStream(std::move(s))
         , buf(iStream->rdbuf()){
         setName(newName(iStream.get()));
         rdbuf(&buf);
@@ -99,20 +99,19 @@ public:
     }
 
 private:
-    std::shared_ptr<std::istream> iStream;
+    std::unique_ptr<std::istream> iStream;
     StreamBuf buf;
 };
 
 
 template <class StreamBuf>
-std::shared_ptr<Istream<OddBuf>> openIstream(const std::string& filename){
-    auto file = std::make_shared<std::ifstream>(filename);
-    return std::make_shared<Istream<OddBuf>>(file, filename);
+std::unique_ptr<Istream<OddBuf>> openIstream(const std::string& filename){
+    return std::make_unique<Istream<OddBuf>>(std::make_unique<std::ifstream>(filename), filename);
 }
 
-template <class StreamBuf, class IstreamPtr>
-std::shared_ptr<Istream<StreamBuf>> makeIstream(IstreamPtr&& is){
-    return std::make_shared<Istream<StreamBuf>>(is);
+template <class StreamBuf>
+std::unique_ptr<Istream<StreamBuf>> makeIstream(std::unique_ptr<std::istream>&& s){
+    return std::make_unique<Istream<StreamBuf>>(std::move(s));
 }
 
 
@@ -140,8 +139,21 @@ void foo2(){
     }
 }
 
+void foo21(){
+    Istream<SwapBuf> is1(openIstream<OddBuf>("file.txt"));
+
+    auto is2 = makeIstream<SwapBuf>(openIstream<OddBuf>("file.txt"));
+
+    if (is1.getName() != is2->getName()){
+        std::cout << "wrong conversion" << std::endl;
+    } else {
+        std::cout << "foo21: " << is1.getName() << ", " << is2->getName() << std::endl;
+    }
+
+}
+
 void foo22(){
-    auto is(makeIstream<SwapBuf>(openIstream<OddBuf>("file.txt")));
+    auto is = openIstream<OddBuf>("file.txt");
 
     std::cout << "foo22 stream name: " << is->getName() << std::endl;
 
@@ -150,6 +162,7 @@ void foo22(){
         std::cout << str << std::endl;
     }
 }
+
 
 int main(int argc, char *argv[])
 {
@@ -170,15 +183,19 @@ int main(int argc, char *argv[])
         std::cout << str << std::endl;
     }
 
-    std::cout << "Hello World!" << std::endl;
+    std::cout << "-------------" << std::endl;
 
     foo();
 
-    std::cout << "Hello World!" << std::endl;
+    std::cout << "-------------" << std::endl;
 
     foo2();
 
-    std::cout << "Hello World!" << std::endl;
+    std::cout << "-------------" << std::endl;
+
+    foo21();
+
+    std::cout << "-------------" << std::endl;
 
     foo22();
 
