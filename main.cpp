@@ -61,32 +61,37 @@ private:
 
 class IstreamName : public std::istream {
 public:
-
+    IstreamName(const std::string& rootName, const std::string& name)
+        : name(name)
+        , rootName(rootName) {
+    }
     const std::string& getName() const { return name; }
-protected:
-    void setName(const std::string& n){ name = n; }
+    const std::string& getRootName() const { return rootName; }
 private:
     std::string name;
+    std::string rootName;
 };
 
 template <class StreamBuf>
 class Istream : public IstreamName {
 public:
-    Istream() = delete;
     Istream(std::unique_ptr<std::istream>&& s, const std::string& name)
-        : iStream(std::move(s))
+        : IstreamName(rootName(s.get(), name),
+                      newName(s.get(), name))
+        , iStream(std::move(s))
         , buf(iStream->rdbuf()){
-        setName(newName(iStream.get(), name));
         rdbuf(&buf);
     }
 
     Istream(std::unique_ptr<std::istream>&& s)
-        : iStream(std::move(s))
+        : IstreamName(rootName(s.get()),
+                      newName(s.get()))
+        , iStream(std::move(s))
         , buf(iStream->rdbuf()){
-        setName(newName(iStream.get()));
-        rdbuf(&buf);
+        rdbuf(&buf);   
     }
 
+private:
     static std::string newName(const std::istream* is, const std::string& name = ""){
         std::string newName{name};
         const IstreamName* stream = dynamic_cast<const IstreamName*>(is);
@@ -96,6 +101,14 @@ public:
         newName.append("|>>|");
         newName.append(StreamBuf::name());
         return newName;
+    }
+
+    static std::string rootName(const std::istream* is, const std::string& name = ""){
+        const IstreamName* stream = dynamic_cast<const IstreamName*>(is);
+        if ( stream ){
+            return stream->getRootName();
+        }
+        return name;
     }
 
 private:
@@ -118,6 +131,7 @@ std::unique_ptr<Istream<StreamBuf>> makeIstream(std::unique_ptr<std::istream>&& 
 void foo(){
     auto is = openIstream<OddBuf>("file.txt");
 
+    std::cout << "foo stream root name: " << is->getRootName() << std::endl;
     std::cout << "foo stream name: " << is->getName() << std::endl;
 
     std::string str;
@@ -131,6 +145,7 @@ void foo(){
 void foo2(){
     Istream<SwapBuf> is(openIstream<OddBuf>("file.txt"));
 
+    std::cout << "foo2 stream root name: " << is.getRootName() << std::endl;
     std::cout << "foo2 stream name: " << is.getName() << std::endl;
 
     std::string str;
@@ -148,6 +163,7 @@ void foo21(){
         std::cout << "wrong conversion" << std::endl;
     } else {
         std::cout << "foo21: " << is1.getName() << ", " << is2->getName() << std::endl;
+        std::cout << "foo21: " << is1.getRootName() << ", " << is2->getRootName() << std::endl;
     }
 
 }
@@ -155,6 +171,7 @@ void foo21(){
 void foo22(){
     auto is = openIstream<OddBuf>("file.txt");
 
+    std::cout << "foo22 stream root name: " << is->getRootName() << std::endl;
     std::cout << "foo22 stream name: " << is->getName() << std::endl;
 
     std::string str;
