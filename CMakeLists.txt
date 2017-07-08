@@ -25,8 +25,8 @@ set (CMAKE_CXX_STANDARD 14)
 #set(CMAKE_C_FLAGS       "${CMAKE_C_FLAGS}   -v" )
 #set(CMAKE_CXX_FLAGS     "${CMAKE_CXX_FLAGS} -v" )
 
-set(CMAKE_C_FLAGS       "${CMAKE_C_FLAGS}   -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wfloat-equal -Wswitch-default -Wuninitialized -Wunreachable-code -Wsuggest-final-types -Wsuggest-final-methods -Wsuggest-override" )
-set(CMAKE_CXX_FLAGS     "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wfloat-equal -Wswitch-default -Wuninitialized -Wunreachable-code -Wsuggest-final-types -Wsuggest-final-methods -Wsuggest-override" )
+set(CMAKE_C_FLAGS       "${CMAKE_C_FLAGS}   -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wfloat-equal -Wswitch-default -Wuninitialized -Wunreachable-code" )
+set(CMAKE_CXX_FLAGS     "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wfloat-equal -Wswitch-default -Wuninitialized -Wunreachable-code  -Wsuggest-final-types -Wsuggest-final-methods" )
 
 #Dr.Memory:              on x64 require g++-multilib
 #set(CMAKE_CXX_FLAGS     "${CMAKE_CXX_FLAGS} -m32 -g -fno-inline -fno-omit-frame-pointer" )
